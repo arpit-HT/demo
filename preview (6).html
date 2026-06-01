@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Snake Game</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial;
+        }
+
+        canvas {
+            border: 2px solid black;
+            background: #f4f4f4;
+        }
+
+        #gameOver {
+            display: none;
+            color: red;
+            font-size: 24px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Snake Game</h2>
+
+<div>
+    Score: <span id="score">0</span>
+    |
+    High Score: <span id="highScore">0</span>
+</div>
+
+<canvas id="game" width="400" height="400"></canvas>
+
+<div id="gameOver">
+    Game Over
+    <br>
+    <button onclick="restartGame()">Restart</button>
+</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const gridSize = 20;
+const tileCount = canvas.width / gridSize;
+
+let snake;
+let food;
+let dx;
+let dy;
+let score;
+let gameLoop;
+let speed;
+
+function init() {
+    snake = [
+        {x: 10, y: 10}
+    ];
+
+    dx = 1;
+    dy = 0;
+
+    score = 0;
+    speed = 200;
+
+    document.getElementById("score").innerText = score;
+
+    spawnFood();
+
+    clearInterval(gameLoop);
+    gameLoop = setInterval(update, speed);
+
+    document.getElementById("gameOver").style.display = "none";
+}
+
+function spawnFood() {
+
+    // BUG: Can spawn on snake body
+    food = {
+        x: Math.floor(Math.random() * tileCount),
+        y: Math.floor(Math.random() * tileCount)
+    };
+}
+
+function update() {
+
+    const head = {
+        x: snake[0].x + dx,
+        y: snake[0].y + dy
+    };
+
+    snake.unshift(head);
+
+    if (head.x === food.x && head.y === food.y) {
+
+        // BUG: Score increases by 2
+        score += 2;
+
+        document.getElementById("score").innerText = score;
+
+        spawnFood();
+
+        speed -= 15;
+
+        // BUG: Can become too fast
+        clearInterval(gameLoop);
+        gameLoop = setInterval(update, speed);
+
+    } else {
+        snake.pop();
+    }
+
+    if (checkCollision(head)) {
+        gameOver();
+        return;
+    }
+
+    draw();
+}
+
+function checkCollision(head) {
+
+    // BUG: Off-by-one wall collision
+    if (
+        head.x < 0 ||
+        head.y < 0 ||
+        head.x > tileCount ||
+        head.y > tileCount
+    ) {
+        return true;
+    }
+
+    for (let i = 1; i < snake.length; i++) {
+        if (
+            snake[i].x === head.x &&
+            snake[i].y === head.y
+        ) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function draw() {
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = "red";
+    ctx.fillRect(
+        food.x * gridSize,
+        food.y * gridSize,
+        gridSize,
+        gridSize
+    );
+
+    snake.forEach((segment, index) => {
+
+        // Head styling
+        ctx.fillStyle =
+            index === 0 ? "green" : "darkgreen";
+
+        ctx.fillRect(
+            segment.x * gridSize,
+            segment.y * gridSize,
+            gridSize,
+            gridSize
+        );
+    });
+}
+
+document.addEventListener("keydown", (e) => {
+
+    // BUG: Reversal prevention incomplete
+
+    if (e.key === "ArrowUp" || e.key === "w") {
+        dx = 0;
+        dy = -1;
+    }
+
+    if (e.key === "ArrowDown" || e.key === "s") {
+        dx = 0;
+        dy = 1;
+    }
+
+    if (e.key === "ArrowLeft" || e.key === "a") {
+        dx = -1;
+        dy = 0;
+    }
+
+    if (e.key === "ArrowRight" || e.key === "d") {
+        dx = 1;
+        dy = 0;
+    }
+});
+
+function gameOver() {
+
+    clearInterval(gameLoop);
+
+    let highScore =
+        localStorage.getItem("snakeHighScore") || 0;
+
+    if (score > highScore) {
+        localStorage.setItem(
+            "snakeHighScore",
+            score
+        );
+    }
+
+    document.getElementById("highScore").innerText =
+        localStorage.getItem("snakeHighScore");
+
+    document.getElementById("gameOver").style.display =
+        "block";
+}
+
+function restartGame() {
+
+    // BUG: High score UI not refreshed properly
+    init();
+}
+
+document.getElementById("highScore").innerText =
+    localStorage.getItem("snakeHighScore") || 0;
+
+init();
+</script>
+
+</body>
+</html>
